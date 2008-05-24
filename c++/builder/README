@@ -1,0 +1,17 @@
+Protein Builder README
+----------------------
+
+g++ -o builder builder.cpp -I/usr/local/include/openbabel-2.0 -L/usr/local/lib -lopenbabel
+
+./builder "Ala-Gly-Ser-Ala-Val" >test.cml
+avogadro test.cml
+
+That's it. At the moment, the builder is set for straight-chain oligopeptides.
+But the code (in theory) should be set for helix, sheet, etc.
+
+TODO
+----
+* Check phi/psi/omega values to be sure sign is correct (e.g., -60/-45 => helix)
+* Check OBResidue data is setup properly for PDB export
+* Provide better bonding information in the zmat files.
+* Provide mechanism to change N and C terminus modifications.
