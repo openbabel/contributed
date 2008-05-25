@@ -7,8 +7,6 @@
 using namespace std;
 using namespace OpenBabel;
 
-void writeXYZ(OBAtom*, char*);
-
 int main(int argc,char *argv[])
 {
   // turn off slow sync with C-style output (we don't use it anyway).
@@ -18,7 +16,9 @@ int main(int argc,char *argv[])
   OBConversion obConversion;
   OBFormat *inFormat;
   OBSmartsPattern smarts;
-  string amino = "[#1][#7][#6][#6](=O)O[#1]";
+  // we set up the input files with amide on each end -- but the N is atom 1
+  // (i.e., we build from N to C)
+  string amino = "[#1][#6](=O)[#7][#6][#6](=O)[#7]";
   smarts.Init(amino);
 
   string filename;
@@ -35,14 +35,16 @@ int main(int argc,char *argv[])
   vector< vector <int> > maplist = smarts.GetUMapList();
   vector< vector <int> >::iterator matches = maplist.begin();
 
-  // delete a hydrogen from amine
-  // delete OH from carboxylic acid
-  OBAtom *hOnAmine = mol.GetAtom((*matches)[0]);
-  OBAtom *oAcid = mol.GetAtom((*matches)[5]);
-  OBAtom *hOnAcid = mol.GetAtom((*matches)[6]);
-  mol.DeleteAtom(hOnAmine);
-  mol.DeleteAtom(oAcid);
-  mol.DeleteAtom(hOnAcid);
+  // delete some atoms we don't want in the final zmatrix build file
+  // "[#1][#6](=O)[#7][#6][#6](=O)[#7]"
+  OBAtom *extraC = mol.GetAtom((*matches)[1]); // HC=O
+  OBAtom *extraCO = mol.GetAtom((*matches)[2]);
+  OBAtom *extraN = mol.GetAtom((*matches)[7]); // -NH2
+  mol.DeleteHydrogens(extraC);
+  mol.DeleteAtom(extraC);
+  mol.DeleteAtom(extraCO);
+  mol.DeleteHydrogens(extraN);
+  mol.DeleteAtom(extraN);
 
   char buffer[BUFF_SIZE];
   
