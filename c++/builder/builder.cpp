@@ -26,11 +26,11 @@ int main(int argc,char *argv[])
   double bondAngle = 120.0;
   // Parameters for an alpha helix
   // should set this from an interface
-  //    double phi = -60.0;
-  //    double psi = -45.0;
+  //  double phi = -60.0;
+  //  double psi = -45.0;
   // For now, leaving this as straight-chain
-  double phi = 179.9;
-  double psi = 179.9;
+  double phi = atof(argv[2]);
+  double psi = atof(argv[3]);
   double omega = 179.9;
 
   // Should have some way of getting this
@@ -94,6 +94,8 @@ int main(int argc,char *argv[])
   // "End group modification"
   // add the extra H to get NH2
   // need to add the new OH to get COOH
+
+  mol.DeleteHydrogens();
 
   mol.ConnectTheDots();
   mol.PerceiveBondOrders();
