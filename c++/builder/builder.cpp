@@ -17,9 +17,9 @@ int main(int argc,char *argv[])
   vector<OBInternalCoord*> vic;
   vic.push_back((OBInternalCoord*)NULL);
   OBInternalCoord* ic;
-  int lastN, lastCa, lastCac; // backbone atoms
-  lastN = lastCa = lastCac = 0;
-  int newN, newCa, newCac;
+  int lastN, lastCa, lastCac, lastO; // backbone atoms
+  lastN = lastCa = lastCac = lastO = 0;
+  int newN, newCa, newCac, newO;
   int lastAtom = 0; // last atom read from previous residue
 
   double amideLength = 1.34;
@@ -49,6 +49,7 @@ int main(int argc,char *argv[])
       newN = lastAtom + 1;
       newCa = lastAtom + 2;
       newCac = lastAtom + 3;
+      newO = lastAtom + 4;
 
       if (lastAtom != 0) {
         // set the peptide bond
@@ -60,6 +61,10 @@ int main(int argc,char *argv[])
         ic->_ang = bondAngle;
         ic->_c = mol.GetAtom(lastN);
         ic->_tor = psi;
+	
+	// fix the O=C from previous residue
+        ic = vic[lastO];
+        ic->_tor = 180.0 + psi;
 
         // now the Calpha
         ic = vic[newCa];
@@ -72,7 +77,7 @@ int main(int argc,char *argv[])
         ic = vic[newCac];
         ic->_c = mol.GetAtom(lastCac);
         ic->_tor = phi;
-
+        
         // add the peptide bond
         mol.AddBond(lastCac, newN, 1);
       }
@@ -80,11 +85,12 @@ int main(int argc,char *argv[])
       // add the known backbone bonds
       mol.AddBond(newN, newCa, 1);
       mol.AddBond(newCa, newCac, 1);
-      mol.AddBond(newCac, newCac + 1, 2); // C=O
+      mol.AddBond(newCac, newO, 2); // C=O
 
       lastN = newN;
       lastCa = newCa;
       lastCac = newCac;
+      lastO = newO;
       lastAtom = mol.NumAtoms();
     }
 
