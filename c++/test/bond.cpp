@@ -35,7 +35,8 @@ GNU General Public License for more details.
 using namespace std;
 using namespace OpenBabel;
 
-BOOST_AUTO_TEST_CASE( bond_test )
+//BOOST_AUTO_TEST_CASE( bond_test )
+void bond_test()
 {
   // turn off slow sync with C-style output (we don't use it anyway).
   std::ios::sync_with_stdio(false);

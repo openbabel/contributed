@@ -44,7 +44,8 @@ using namespace OpenBabel;
   string d3file = "files/test3d.xyz";
 #endif
 
-BOOST_AUTO_TEST_CASE( mol_test )
+//BOOST_AUTO_TEST_CASE( mol_test )
+void mol_test()
 {
   // turn off slow sync with C-style output (we don't use it anyway).
   std::ios::sync_with_stdio(false);

@@ -35,7 +35,8 @@ GNU General Public License for more details.
 using namespace std;
 using namespace OpenBabel;
 
-BOOST_AUTO_TEST_CASE( atom_test )
+//BOOST_AUTO_TEST_CASE( atom_test )
+void atom_test()
 {
   // turn off slow sync with C-style output (we don't use it anyway).
   std::ios::sync_with_stdio(false);
