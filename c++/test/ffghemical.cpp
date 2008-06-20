@@ -1,5 +1,5 @@
 /**********************************************************************
-ffmmff94.cpp - Test energy and gradients for MMFF94 force field
+ffghemical.cpp - Test energy and gradients for Ghemical force field
 
 This file is part of the Open Babel project.
 For more information, see <http://openbabel.sourceforge.net/>
@@ -31,19 +31,18 @@ GNU General Public License for more details.
 using namespace std;
 using namespace OpenBabel;
 
-void mmff94_test()
+void ghemical_test()
 {
-
 #ifdef TESTDATADIR
   string testdatadir = TESTDATADIR;
-  string results_file = testdatadir + "mmff94results.txt";
+  string results_file = testdatadir + "ghemicalresults.txt";
   string molecules_file = testdatadir + "forcefield.sdf";
 #else
-  string results_file = "files/mmff94results.txt";
+  string results_file = "files/ghemicalresults.txt";
   string molecules_file = "files/forcefield.sdf";
 #endif
 
-  cout << "# Testing MMFF94 Force Field..." << endl;
+  cout << "# Testing Ghemical Force Field..." << endl;
 
   std::ifstream mifs;
   BOOST_REQUIRE_MESSAGE( SafeOpen(mifs, molecules_file.c_str()), "Bail out! Cannot read file " );
@@ -60,7 +59,7 @@ void mmff94_test()
 
   BOOST_REQUIRE_MESSAGE( conv.SetInAndOutFormats("SDF","SDF"), "Bail out! SDF format is not loaded" );
     
-  OBForceField* pFF = OBForceField::FindForceField("MMFF94");
+  OBForceField* pFF = OBForceField::FindForceField("Ghemical");
 
   BOOST_REQUIRE_MESSAGE(pFF != NULL, "Bail out! Cannot load force field!" );
 

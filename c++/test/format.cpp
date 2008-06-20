@@ -1,5 +1,5 @@
 /**********************************************************************
-atom.cpp - Unit tests for Open Babel OBAtom class
+format.cpp - Unit tests for Open Babel OBFormat class
 
 Copyright (C) 2005-2006 Geoffrey R. Hutchison
 Copyright (C) 2008 Tim Vandermeersch
@@ -26,40 +26,24 @@ GNU General Public License for more details.
 #include <openbabel/mol.h>
 #include <openbabel/obconversion.h>
 
-//#include <stdio.h>
-//#include <iostream>
+#include <stdio.h>
+#include <iostream>
 
 using namespace std;
 using namespace OpenBabel;
 
-void atom_test()
+void format_test()
 {
-  cout << "# Unit tests for OBAtom \n";
-  
-  OBAtom emptyAtom, testAtom1, testAtom2;
+  cout << "# Unit tests for OBFormat \n";
 
-  // OBAtom isolation tests (no connection to residue, bond, molecule...)
+  OBConversion obConversion;
+  BOOST_CHECK( obConversion.SetInAndOutFormats("smi", "mdl") );
 
-  // Beat up on SetIdx
-  testAtom1.SetIdx(0);
-  cout <<  testAtom1.GetIdx() << "\n";
-  testAtom1.SetIdx(-1);
-  cout <<  testAtom1.GetIdx() << "\n";
-  testAtom1.SetIdx(1);
+  OBFormat *inFormat = obConversion.GetInFormat();
+  BOOST_CHECK( inFormat );
 
-  // Beat up on atomic number
-  testAtom1.SetAtomicNum(0);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(-1);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(200);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(300);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(1);
+  OBFormat *outFormat = obConversion.GetOutFormat();
+  BOOST_CHECK( outFormat );
 
-  // PR#1373650
-  double *coordPtr = testAtom1.GetCoordinate();
-
-  testAtom1.SetCoordPtr(&coordPtr);
 }
+

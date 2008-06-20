@@ -22,9 +22,6 @@ GNU General Public License for more details.
 #define USING_OBDLL
 #endif
 
-//#define BOOST_TEST_MODULE Bond
-#include <boost/test/unit_test.hpp>
-
 #include <openbabel/babelconfig.h>
 #include <openbabel/mol.h>
 #include <openbabel/obconversion.h>
@@ -35,12 +32,8 @@ GNU General Public License for more details.
 using namespace std;
 using namespace OpenBabel;
 
-//BOOST_AUTO_TEST_CASE( bond_test )
 void bond_test()
 {
-  // turn off slow sync with C-style output (we don't use it anyway).
-  std::ios::sync_with_stdio(false);
-
   cout << "# Unit tests for OBBond \n";
   
   // OBBond isolation tests (no connection to residue, molecule...)

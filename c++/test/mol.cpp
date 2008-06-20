@@ -22,9 +22,6 @@ GNU General Public License for more details.
 #define USING_OBDLL
 #endif
 
-//#define BOOST_TEST_MODULE Mol
-#include <boost/test/unit_test.hpp>
-
 #include <openbabel/babelconfig.h>
 #include <openbabel/mol.h>
 #include <openbabel/obconversion.h>
@@ -35,6 +32,8 @@ GNU General Public License for more details.
 using namespace std;
 using namespace OpenBabel;
 
+void mol_test()
+{
 #ifdef TESTDATADIR
   string testdatadir = TESTDATADIR;
   string d2file = testdatadir + "test2d.xyz";
@@ -43,13 +42,7 @@ using namespace OpenBabel;
   string d2file = "files/test2d.xyz";
   string d3file = "files/test3d.xyz";
 #endif
-
-//BOOST_AUTO_TEST_CASE( mol_test )
-void mol_test()
-{
-  // turn off slow sync with C-style output (we don't use it anyway).
-  std::ios::sync_with_stdio(false);
-
+  
   cout << "# Unit tests for OBMol \n";
 
   OBMol emptyMol, testMol1;

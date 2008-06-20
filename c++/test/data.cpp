@@ -1,5 +1,5 @@
 /**********************************************************************
-atom.cpp - Unit tests for Open Babel OBAtom class
+data.cpp - Unit tests for Open Babel data classes
 
 Copyright (C) 2005-2006 Geoffrey R. Hutchison
 Copyright (C) 2008 Tim Vandermeersch
@@ -24,42 +24,19 @@ GNU General Public License for more details.
 
 #include <openbabel/babelconfig.h>
 #include <openbabel/mol.h>
-#include <openbabel/obconversion.h>
-
-//#include <stdio.h>
-//#include <iostream>
+#include <openbabel/data.h>
+#include <math.h>
+#include <stdio.h>
+#include <iostream>
 
 using namespace std;
 using namespace OpenBabel;
 
-void atom_test()
+void data_test()
 {
-  cout << "# Unit tests for OBAtom \n";
-  
-  OBAtom emptyAtom, testAtom1, testAtom2;
+  cout << "# Unit tests for data tables \n";
 
-  // OBAtom isolation tests (no connection to residue, bond, molecule...)
+  //double mass = etab.GetMass(2);
+  BOOST_CHECK( fabs(etab.GetMass(2) - 4.0026 ) < 2e-3 );
 
-  // Beat up on SetIdx
-  testAtom1.SetIdx(0);
-  cout <<  testAtom1.GetIdx() << "\n";
-  testAtom1.SetIdx(-1);
-  cout <<  testAtom1.GetIdx() << "\n";
-  testAtom1.SetIdx(1);
-
-  // Beat up on atomic number
-  testAtom1.SetAtomicNum(0);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(-1);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(200);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(300);
-  cout <<  testAtom1.GetAtomicNum() << "\n";
-  testAtom1.SetAtomicNum(1);
-
-  // PR#1373650
-  double *coordPtr = testAtom1.GetCoordinate();
-
-  testAtom1.SetCoordPtr(&coordPtr);
 }
