@@ -60,6 +60,7 @@
 	    <th># passed</th>
 	    <th># failed</th>
 	    <th># expected to fail</th>
+	    <th>Log</th>
 	  </tr>
           <xsl:apply-templates select="TestSuite/TestCase"/>
         </table>
@@ -86,6 +87,9 @@
 	</td>
 	<td>
           <xsl:value-of select="@expected_failures" />
+	</td>
+	<td>
+	  <a href="log.xml#{@name}">...</a>
 	</td>
       </tr>
   </xsl:template>
