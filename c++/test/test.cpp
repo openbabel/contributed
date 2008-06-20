@@ -17,6 +17,7 @@ using boost::unit_test_framework::test_suite;
 #include "formalcharge.cpp"
 #include "format.cpp"
 #include "formula.cpp"
+#include "phmodel.cpp"
 
 
 test_suite *init_unit_test_suite( int argc, char* argv[] )
@@ -40,6 +41,7 @@ test_suite *init_unit_test_suite( int argc, char* argv[] )
     suite->add(BOOST_TEST_CASE(iterator_test));
     suite->add(BOOST_TEST_CASE(mmff94_test));
     suite->add(BOOST_TEST_CASE(mol_test));
+    suite->add(BOOST_TEST_CASE(phmodel_test), 2); // 2 = expected failures
     suite->add(BOOST_TEST_CASE(uff_test));
     
     return suite;
