@@ -51,7 +51,7 @@ void formula_test()
   BOOST_REQUIRE_MESSAGE( SafeOpen(mifs, smilestypes_file.c_str()), "Bail out! Cannot read file " );
 
   std::ifstream rifs;
-  BOOST_REQUIRE_MESSAGE( SafeOpen(rifs, smilestypes_file.c_str()), "Bail out! Cannot read file " );
+  BOOST_REQUIRE_MESSAGE( SafeOpen(rifs, results_file.c_str()), "Bail out! Cannot read file " );
 
   char buffer[BUFF_SIZE];
   char message[BUFF_SIZE];

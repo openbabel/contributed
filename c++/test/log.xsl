@@ -2,7 +2,6 @@
   <xsl:output method="html" indent="yes"/> 
 
   <xsl:template match="TestSuite">
-    <!-- <xsl:if test="@name = 'OpenBabelTestSuite'"> -->
     <style type="text/css">
       table.test_suite {
         border-width: 0px 0px 0px 0px;
@@ -43,35 +42,36 @@
       <body>
         <center>
         <font size="12">OpenBabel Unit Test Log</font>
-          <xsl:apply-templates select="TestSuite/TestCase"/>
+          <xsl:apply-templates select="TestLog"/>
  	</center>
       </body>
     </html>
-    <!-- </xsl:if> -->
   </xsl:template>
   
-  <xsl:template  match="TestSuite/TestCase">
-    <a name="{@name}"/>
-    <table width="100%" class="test_case">
-      <tr>
-        <th colspan="2">
-	  <xsl:value-of select="@name" /> (
-	  <a href="#{@name}_passed">passed</a> |
-	  <a href="#{@name}_failed">failed</a> |
-	  <a href="#{@name}_cout">std::cout</a> )
-	</th>
-      </tr>
-      <a name="{@name}_failed"/>
+  <xsl:template  match="TestLog">
+    <a name="{@file}"/>
+    <table border="1" width="100%" class="test_suite">
       <xsl:for-each select="Error">
-        <tr bgcolor="#CC0000">
-          <td width="10%">
-            line <xsl:value-of select="@line" />
-          </td>
+        <tr>
+          <th width="10%">
+            <xsl:value-of select="@file" />:<xsl:value-of select="@line" />
+          </th>
           <td>
             <xsl:value-of select="." />
           </td>
         </tr>
       </xsl:for-each>
+      <xsl:for-each select="FatalError">
+        <tr bgcolor="#CC0000">
+          <th width="10%">
+            <xsl:value-of select="@file" />:<xsl:value-of select="@line" />
+          </th>
+          <td>
+            <xsl:value-of select="." />
+          </td>
+        </tr>
+      </xsl:for-each>
+      <!--
       <a name="{@name}_passed"/>
       <xsl:for-each select="Info">
         <tr bgcolor="#00CC00">
@@ -92,6 +92,7 @@
           <xsl:value-of select="." />
         </td>
       </tr>
+      -->
     </table>
   </xsl:template>
   
