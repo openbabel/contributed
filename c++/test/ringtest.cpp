@@ -67,8 +67,8 @@ void ring_test()
   vector<int> vi;
   OBMol mol;
   vector<string>::iterator i;
-  vector<OBEdgeBase*>::iterator j;
-  vector<OBNodeBase*>::iterator k;
+  vector<OBBond*>::iterator j;
+  vector<OBAtom*>::iterator k;
   vector<OBRing*>::iterator m;
   OBConversion conv(&mifs, &cout);
   unsigned int currentTest = 0;

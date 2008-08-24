@@ -164,7 +164,7 @@ void smarts_test()
             }
         }
       os.str("");
-      os << "ok " << currentMol << " # molecule passed tests\n";
+      os << currentMol << " # molecule did not pass tests\n";
       BOOST_CHECK_MESSAGE( molPassed, os.str().c_str() );
     }
 

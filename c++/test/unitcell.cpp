@@ -41,12 +41,12 @@ void unitcell_test()
     cout << "# Testing unit cell transformations ..." << endl;
 
     double a, b, c, alpha, beta, gamma;
-    vector3 v1, v2, v3, v4, v5, v6, v7, v8, v9;
+    Eigen::Vector3d v1, v2, v3, v4, v5, v6, v7, v8, v9;
     double x = 0.0, y = 0.0, z = 0.0;
     char buffer[BUFF_SIZE];
     std::ifstream ifs, results;
     OBUnitCell cell, cell2;
-    vector<vector3> v3Return;
+    vector<Eigen::Vector3d> v3Return;
     vector<string> vs;
     unsigned int currTest = 1;
 
@@ -57,15 +57,15 @@ void unitcell_test()
 
     ifs.getline(buffer,BUFF_SIZE);
     sscanf(buffer,"%lf %lf %lf",&x, &y, &z);
-    v1.Set(x, y, z);
+    v1 = Eigen::Vector3d(x, y, z);
 
     ifs.getline(buffer,BUFF_SIZE);
     sscanf(buffer,"%lf %lf %lf",&x, &y, &z);
-    v2.Set(x, y, z);
+    v2 = Eigen::Vector3d(x, y, z);
 
     ifs.getline(buffer,BUFF_SIZE);
     sscanf(buffer,"%lf %lf %lf",&x, &y, &z);
-    v3.Set(x, y, z);
+    v3 = Eigen::Vector3d(x, y, z);
 
     cell.SetData(v1, v2, v3);
 
@@ -133,9 +133,9 @@ void unitcell_test()
     v6 = v3Return[2];
     //    cout << v6 << endl;
 
-    v9 = vector3(1.0f, 1.0f, 1.0f);
-    matrix3x3 m = cell2.GetOrthoMatrix();
-    v9 *= m;
+    v9 = Eigen::Vector3d(1.0f, 1.0f, 1.0f);
+    Eigen::Matrix3d m = cell2.GetOrthoMatrix();
+    v9 = m * v9;
     //    cout << v9 << endl;
 
     cout << "# cell volume " << cell.GetCellVolume() << endl;

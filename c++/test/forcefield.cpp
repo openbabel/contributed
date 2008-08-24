@@ -26,6 +26,7 @@ GNU General Public License for more details.
 #include <openbabel/obconversion.h>
 #include <openbabel/builder.h>
 #include <openbabel/forcefield.h>
+#include <openbabel/minimize.h>
 #include <fstream>
 
 using namespace std;
@@ -57,6 +58,7 @@ void forcefield_test()
 
   pFF->SetLogFile(&cout);
   pFF->SetLogLevel(OBFF_LOGLVL_NONE);
+  OBMinimize mini(pFF);
 
   double energy;
   while(mifs) {
@@ -75,7 +77,7 @@ void forcefield_test()
 		    "Output from OBBuilder::Build() has wrong energy" );
  
     // test SteepestDescent
-    pFF->SteepestDescent(100);
+    mini.SteepestDescent(100);
     BOOST_CHECK_MESSAGE( fabs(pFF->Energy(false) - 104.177) < 1.0,
 		   "Energy after SteepestDescent(100) is wrong" );
 
@@ -85,7 +87,7 @@ void forcefield_test()
 		    "SetCoordinates() doesn't reset coordinates in _mol" );
 
     // test ConjugateGradients
-    pFF->ConjugateGradients(100);
+    mini.ConjugateGradients(100);
     BOOST_CHECK_MESSAGE( fabs(pFF->Energy(false) - 106.496) < 1.0,
 		   "Energy after ConjugateGradients(100) is wrong" );
 

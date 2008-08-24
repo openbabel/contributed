@@ -22,7 +22,7 @@ using boost::unit_test_framework::test_suite;
 #include "internalcoord.cpp"
 #include "logp_psa.cpp"
 #include "ringtest.cpp"
-#include "math.cpp"
+//#include "math.cpp"
 #include "residue.cpp"
 #include "invalidsmiles.cpp"
 #include "invalidsmarts.cpp"
@@ -39,7 +39,7 @@ test_suite *init_unit_test_suite( int argc, char* argv[] )
 
     // turn off slow sync with C-style output (we don't use it anyway).
     std::ios::sync_with_stdio(false);
-
+  
     suite->add(BOOST_TEST_CASE(aromatic_test));
     suite->add(BOOST_TEST_CASE(atom_test));
     suite->add(BOOST_TEST_CASE(bond_test));
@@ -58,7 +58,7 @@ test_suite *init_unit_test_suite( int argc, char* argv[] )
     suite->add(BOOST_TEST_CASE(invalid_smiles_test));
     suite->add(BOOST_TEST_CASE(iterator_test));
     suite->add(BOOST_TEST_CASE(logp_psa_test));
-    suite->add(BOOST_TEST_CASE(math_test));
+    //suite->add(BOOST_TEST_CASE(math_test));
     suite->add(BOOST_TEST_CASE(mmff94_test));
     suite->add(BOOST_TEST_CASE(mol_test));
     suite->add(BOOST_TEST_CASE(phmodel_test), 2); // 2 = expected failures
@@ -69,10 +69,9 @@ test_suite *init_unit_test_suite( int argc, char* argv[] )
     suite->add(BOOST_TEST_CASE(uff_test));
     suite->add(BOOST_TEST_CASE(unitcell_test));
     
-    suite->add(BOOST_TEST_CASE(mmff94_validate), 143);
+    //suite->add(BOOST_TEST_CASE(mmff94_validate), 143);
 
-    suite->add(BOOST_TEST_CASE(chains_test));
-
+    //suite->add(BOOST_TEST_CASE(chains_test));
 
     return suite;
 }

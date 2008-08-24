@@ -125,10 +125,10 @@ void residue_test()
   CheckInvalidResidue(conv, amine, ++testCount);
 
   // check some dipeptides
-  string test = ala + val;
-  CheckValidDipeptide(conv, test, ++testCount);
-  test = cys + leu;
-  CheckValidDipeptide(conv, test, ++testCount);
+  static const string ala_val("NC(C)C(=O)NC(C(C)C)C(=O)O");
+  CheckValidDipeptide(conv, ala_val, ++testCount);
+  static const string cys_leu("NC(CS)C(=O)NC(CC(C)C)C(=O)O");
+  CheckValidDipeptide(conv, cys_leu, ++testCount);
  
 }
 
@@ -141,6 +141,8 @@ void CheckValidResidue(OBConversion &conv,
 
   mol.Clear();
   conv.ReadString(&mol, test);
+
+
   chainsparser.PerceiveChains(mol);
   if (mol.NumResidues() != 1)
     {

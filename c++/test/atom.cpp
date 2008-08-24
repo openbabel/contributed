@@ -60,6 +60,15 @@ void atom_test()
 
   // PR#1373650
   double *coordPtr = testAtom1.GetCoordinate();
-
   testAtom1.SetCoordPtr(&coordPtr);
+
+  testAtom2.SetPositiveStereo();
+  BOOST_CHECK( testAtom2.IsPositiveStereo() );
+  testAtom2.SetNegativeStereo();
+  BOOST_CHECK( testAtom2.IsNegativeStereo() );
+  testAtom2.SetClockwiseStereo();
+  BOOST_CHECK( testAtom2.IsClockwise() );
+  testAtom2.SetAntiClockwiseStereo();
+  BOOST_CHECK( testAtom2.IsAntiClockwise() );
+
 }
