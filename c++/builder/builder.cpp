@@ -12,6 +12,8 @@ void AddResidue(string residue, bool lStereo,
                 OBMol &mol, vector<OBInternalCoord*> &vic,
                 const char chain);
 
+void WriteResidue(string residue, OBMol &mol, bool lStereo);
+
 int main(int argc,char *argv[])
 {
   OBMol mol;
@@ -111,10 +113,13 @@ int main(int argc,char *argv[])
   mol.SetPartialChargesPerceived();
 
   OBConversion conv;
-  OBFormat *pFormat = conv.FindFormat("pdb");
-  conv.SetOutFormat(pFormat);
-
+  conv.SetOutFormat("PDB");
   conv.Write(&mol, &cout);
+
+  // Used to generate the atom ids in the zmat files
+  //  chainsparser.PerceiveChains(mol);
+  //  WriteResidue(vs[0], mol, true);
+  //  WriteResidue(vs[0], mol, false);
   
   return 0;
 }
@@ -206,5 +211,35 @@ void AddResidue(string residue, bool lStereo,
       coord->_c = NULL;
 
     vic.push_back(coord);
+  }
+}
+
+void WriteResidue(string residue, OBMol &mol, bool lStereo)
+{
+  string filename;
+  if (residue != "Gly") {
+    if (lStereo)
+      filename = "L-";
+    else // D stereo
+      filename = "D-";
+  }
+  filename += residue + ".zmat";
+    
+  ifstream ifs;
+  ifs.open(filename.c_str());
+  ofstream ofs;
+  string output = filename + ".new";
+  ofs.open(output.c_str());
+
+  char buffer[BUFF_SIZE];
+  int atomIndex = 0;
+  OBAtom* atom;
+  OBResidue* res = mol.GetResidue(0);
+  if (!res)
+    return;
+
+  while (ifs.getline(buffer, BUFF_SIZE)) {
+    atom = mol.GetAtom(++atomIndex);
+    ofs << buffer << "  "  << res->GetAtomID(atom) << endl;
   }
 }
