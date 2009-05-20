@@ -3,6 +3,7 @@
 #include <openbabel/obconversion.h>
 
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 using namespace OpenBabel;
@@ -29,8 +30,8 @@ int main(int argc,char *argv[])
   //  double phi = -60.0;
   //  double psi = -45.0;
   // For now, leaving this as straight-chain
-  double phi = atof(argv[2]);
-  double psi = atof(argv[3]);
+  double phi = -1.0*atof(argv[2]);
+  double psi = -1.0*atof(argv[3]);
   double omega = 179.9;
 
   // Should have some way of getting this
@@ -62,7 +63,7 @@ int main(int argc,char *argv[])
         ic->_c = mol.GetAtom(lastN);
         ic->_tor = psi;
 	
-	// fix the O=C from previous residue
+        // fix the O=C from previous residue
         ic = vic[lastO];
         ic->_tor = 180.0 + psi;
 
@@ -101,14 +102,16 @@ int main(int argc,char *argv[])
   // add the extra H to get NH2
   // need to add the new OH to get COOH
 
-  mol.DeleteHydrogens();
+  OBBitVec allAtoms;
+  allAtoms.SetRangeOn(0, mol.NumAtoms());
+  resdat.AssignBonds(mol, allAtoms);
 
-  mol.ConnectTheDots();
-  mol.PerceiveBondOrders();
+  //mol.ConnectTheDots();
+  //mol.PerceiveBondOrders();
   mol.SetPartialChargesPerceived();
 
   OBConversion conv;
-  OBFormat *pFormat = conv.FindFormat("cml");
+  OBFormat *pFormat = conv.FindFormat("pdb");
   conv.SetOutFormat(pFormat);
 
   conv.Write(&mol, &cout);
@@ -118,11 +121,9 @@ int main(int argc,char *argv[])
 
 string Uppercase(const string &residue)
 {
-  string upperCase;
-  const unsigned int length = residue.length();
-  for (unsigned int i = 0; i < length; ++i)
-    upperCase[i] = toupper(residue[i]);
-
+  string upperCase(residue);
+  std::transform(upperCase.begin(), upperCase.end(), upperCase.begin(),
+                 ::toupper);
   return upperCase;
 }
 
@@ -158,7 +159,7 @@ void AddResidue(string residue, bool lStereo,
   res->SetNum(prevRes);
   res->SetChain(chain);
   // needs to be in uppercase
-  res->SetName(residue);
+  res->SetName(Uppercase(residue));
 
   // Read in an amino z-matrix
   // similar to MOPAC zmat format
@@ -173,6 +174,11 @@ void AddResidue(string residue, bool lStereo,
     atom->SetAtomicNum(etab.GetAtomicNum(vs[0].c_str()));
     atom->SetPartialCharge(atof(vs[7].c_str()));
     res->AddAtom(atom);
+    res->SetHetAtom(atom, false);
+    res->SetSerialNum(atom, mol.NumAtoms());
+    // TODO: Add AtomIDs to all residue .zmat files
+    if (vs.size() == 9)
+      res->SetAtomID(atom, vs[8]);
 
     OBInternalCoord *coord = new OBInternalCoord;
     coord->_dst = atof(vs[1].c_str());
