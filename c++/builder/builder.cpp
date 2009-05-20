@@ -97,6 +97,10 @@ int main(int argc,char *argv[])
       lastAtom = mol.NumAtoms();
     }
 
+  // Fix the final C=O if not straight-chain
+  ic = vic[lastO];
+  ic->_tor = 180.0 + psi;
+
   mol.EndModify();
 
   InternalToCartesian(vic,mol);
