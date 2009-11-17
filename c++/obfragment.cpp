@@ -24,6 +24,7 @@ GNU General Public License for more details.
 #include <openbabel/babelconfig.h>
 #include <openbabel/mol.h>
 #include <openbabel/obconversion.h>
+#include <openbabel/graphsym.h>
 
 #if !HAVE_STRNCASECMP
 extern "C" int strncasecmp(const char *s1, const char *s2, size_t n);
@@ -140,11 +141,9 @@ int main(int argc,char *argv[])
             index[currentCAN] = 1; // don't ever write this ring fragment again
 
             // OK, now retrieve the canonical ordering for the fragment
-            vector<string> canonical_order;
-            if (fragments[i].HasData("canonical order")) {
-              OBPairData *data = (OBPairData*)fragments[i].GetData("canonical order");
-              tokenize(canonical_order, data->GetValue().c_str());
-            }
+            vector<unsigned int> canonical_order;
+            OBGraphSym gs(&fragments[i]);
+            gs.CanonicalLabels(canonical_order);
 
             // Write out an XYZ-style file with the CANSMI as the title
             cout << fragments[i].NumAtoms() << '\n';
@@ -156,7 +155,7 @@ int main(int argc,char *argv[])
 
             for (unsigned int index = 0; index < canonical_order.size(); 
                  ++index) {
-              order = atoi(canonical_order[index].c_str());
+              order = canonical_order[index];
               atom = fragments[i].GetAtom(order);
               
               snprintf(buffer, BUFF_SIZE, "C %9.3f %9.3f %9.3f\n",
