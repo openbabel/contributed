@@ -54,7 +54,7 @@ int main(int argc,char *argv[])
   vector<OBMol> fragments;
   unsigned int fragmentCount = 0; // track how many in library -- give a running count
   map<string, int> index; // index of cansmi
-  string currentCAN;
+  string currentCAN, currentSMARTS;
   unsigned int size;
   OBAtom *atom;
   OBBond *bond;
@@ -95,7 +95,7 @@ int main(int argc,char *argv[])
     while(ifs.peek() != EOF && ifs.good())
       {
         conv.Read(&mol, &ifs);
-        if (!mol.Has3D()) continue; // invalid coordinates!
+        //if (!mol.Has3D()) continue; // invalid coordinates!
         mol.DeleteHydrogens(); // remove these before we do anything else
 
         // Skip molecules with spiro atoms
@@ -155,29 +155,32 @@ int main(int argc,char *argv[])
               continue;
               
             currentCAN = conv.WriteString(&fragments[i], true);
-            currentCAN = RewriteSMILES(currentCAN); // change elements to "a/A" for compression
-            if (index.find(currentCAN) != index.end()) { // already got this
-              index[currentCAN] += 1; // add to the count for bookkeeping
+            currentSMARTS = RewriteSMILES(currentCAN); // change elements to "a/A" for compression
+            std::stringstream stitle;
+            stitle << currentSMARTS << "\t" << fragments[i].NumAtoms() << "\t" << fragments[i].NumBonds();
+            std::string title = stitle.str();
+            stitle << "\t" << currentCAN;
+            if (index.find(title) != index.end()) { // already got this
+              index[title] += 1; // add to the count for bookkeeping
               continue;
             }
 
-            index[currentCAN] = 1; // don't ever write this ring fragment again
+            index[title] = 1; // don't ever write this ring fragment again
 
-            // OK, now retrieve the canonical ordering for the fragment
+            // OK, now retrieve the canonical SMILES ordering for the fragment
+            OBPairData *pd = dynamic_cast<OBPairData*>(fragments[i].GetData("SMILES Atom Order"));
+            /*cout << "Canonical order " << pd->GetValue() << "\n";*/
+            istringstream iss(pd->GetValue());
             vector<unsigned int> canonical_order;
-            OBGraphSym gs(&fragments[i]);
-            gs.CanonicalLabels(canonical_order);
-            /*for (vector<unsigned int>::iterator ix=canonical_order.begin(); ix!=canonical_order.end(); ++ix) {
-              cout << *ix << " ";
-            }
-            cout << "\n";*/
-            
+            canonical_order.clear();
+            copy(istream_iterator<unsigned int>(iss),
+                 istream_iterator<unsigned int>(),
+                 back_inserter<vector<unsigned int> >(canonical_order));
 
             // Write out an XYZ-style file with the CANSMI as the title
             cout << fragments[i].NumAtoms() << '\n';
-            cout << currentCAN << '\t' << fragments[i].GetSSSR().size() << '\n'; // endl causes a flush
+            cout << stitle.str() << '\n'; // endl causes a flush
 
-            vector<string>::iterator can_iter;
             unsigned int order;
             OBAtom *atom;
 

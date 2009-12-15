@@ -38,8 +38,25 @@ using namespace std;
 using namespace OpenBabel;
 
 bool CompareSMILES(const string &a, const string &b)
-{
-  return a.length() > b.length();
+{ 
+  // Originally a.length() > b.length()
+  // Now it uses the actual number of atoms and number of bonds
+  vector<string> va;
+  tokenize(va, a.c_str());
+  vector<string> vb;
+  tokenize(vb, b.c_str());
+
+  // Sort based on the number of atoms, then the number of bonds, then the length
+  if (atoi(va[1].c_str()) > atoi(vb[1].c_str()))
+    return true;
+  else if (atoi(va[1].c_str()) == atoi(vb[1].c_str())) {
+    if (atoi(va[2].c_str()) > atoi(vb[2].c_str()))
+      return true;
+    else if (atoi(va[2].c_str()) == atoi(vb[2].c_str()))
+      return a.length() > b.length();
+  }
+  else
+    return false;
 }
 
 int main(int argc,char *argv[])
@@ -84,13 +101,14 @@ int main(int argc,char *argv[])
 
   // First read in the molecules and hash them
   int molCount = 0;
-  std::string temp;
+  string temp, title;
+  vector<string> vs;
   while(ifs.peek() != EOF && ifs.good())    {
     mol = new OBMol;
     conv.Read(mol);
     
-    if (!mol->Has3D())
-      continue; // invalid coordinates
+    /*if (!mol->Has3D())
+      continue; // invalid coordinates*/
     
     temp = std::string(mol->GetTitle());
     
@@ -101,7 +119,9 @@ int main(int argc,char *argv[])
     if (!sp.Init(temp)) // not a valid SMARTS pattern
       continue;
 
-    molIndex[Trim(temp)] = mol;
+    tokenize(vs, temp);
+    title = vs[0] + "\t" + vs[1] + "\t" + vs[2];
+    molIndex[title] = mol;
 
     // Give some progress
     molCount++;
@@ -111,17 +131,17 @@ int main(int argc,char *argv[])
   
   // Now read in the list of frequencies and SMILES
   // (We sort the SMILES by length -- it's already sorted by frequency)
-  vector<string> vs, smilesIndex;
+  vector<string> smilesIndex;
   string line;
   char buffer[BUFF_SIZE];
   do {
     getline(freq, line); // Count INDEX CanSMI
     tokenize(vs, line);
-    
-    if (molIndex.find(vs[2]) == molIndex.end())
+    string title = vs[2] + "\t" + vs[3] + "\t" + vs[4];
+    if (molIndex.find(title) == molIndex.end())
       continue;
     
-    smilesIndex.push_back(vs[2]);
+    smilesIndex.push_back(title);
   }  while (freq.peek() != EOF && freq.good());
   sort(smilesIndex.begin(), smilesIndex.end(), CompareSMILES);
    
@@ -133,7 +153,8 @@ int main(int argc,char *argv[])
       
     mol->Center();
 //    cout << mol->NumAtoms() << "\n";
-    cout << (*j) << "\n";
+    tokenize(vs, *j);
+    cout << vs[0] << "\n";
     for(unsigned int i = 1;i <= mol->NumAtoms(); i++)
     {
       atom = mol->GetAtom(i);
