@@ -1,0 +1,85 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.syngenta.ciu.s4</groupId>
+    <artifactId>S4</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Simple Similarity Search Server (S4)</name>
+    <description>A simple RESTful Web Service interface to OpenBabel's similarity search tools</description>
+    <inceptionYear>2013</inceptionYear>
+
+    <organization>
+        <name>Syngenta Ltd.</name>
+        <url>http://www.syngenta.com/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>cpudney</id>
+            <name>Chris Pudney</name>
+            <email>chris.pudney@syngenta.com</email>
+        </developer>
+    </developers>
+
+    <contributors>
+        <contributor>
+            <name>Mark Forster</name>
+            <email>mark.forster@syngenta.com</email>
+        </contributor>
+        <contributor>
+            <name>Bob Vaughan</name>
+            <email>bob.vaughan@syngenta.com</email>
+        </contributor>
+    </contributors>
+
+    <scm>
+        <connection>scm:git://github.com/openbabel/contributed.git</connection>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>GPL2 license</name>
+            <url>https://github.com/openbabel/openbabel/blob/master/README</url>
+        </license>
+    </licenses>
+
+    <mailingLists>
+        <mailingList>
+            <name>OpenBabel-Announce</name>
+            <archive>https://lists.sourceforge.net/lists/listinfo/openbabel-announce</archive>
+        </mailingList>
+    </mailingLists>
+
+    <issueManagement>
+        <system>SourceForge</system>
+        <url>http://sourceforge.net/p/openbabel/bugs/</url>
+    </issueManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.simpleframework</groupId>
+            <artifactId>simple</artifactId>
+            <version>5.0.7</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
