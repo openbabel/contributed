@@ -54,4 +54,26 @@ following command into the address bar of your browser:
 
 javascript:encodeURIComponent("O=C1C2=C(N=CN2C)N(C(=O)N1C)C")
 
----
+--- How S4 uses OpenBabel
+
+The simsearch service uses the BabelSimilaritySearch class to run the OpenBabel executable.
+
+1. The query SMILES is written to a temporary file smiles.query.file.
+2. A second temporary file, temporary.results.file, is created to hold intermediate results.
+3. The OpenBabel executable is run to perform a similarity search of the Fast Search index file, s4.index.file.name,
+using the specified tanimoto.cutoff:
+
+babel <s4.index.file.name> <temporary.results.file> -S <smiles.query.file> -at <tanimoto.cutoff>
+
+This writes the search results (structure id and SMILES) to temporary.results.file.
+
+4. The OpenBabel executable is run a second time to determine the Tanimoto similarity coefficient between the query
+structure in smiles.query.file and each of the structures in temporary.results.file:
+
+babel <smiles.query.file> <temporary.results.file> -ofpt
+
+5. The output of this command is parse to produce a mapping between structure id and Tanimoto coefficient.
+
+6. The temporary.results.file is then parsed with the structure id used to lookup the Tanimoto coefficient using the
+map produced in step 5. Then the structure id, SMILES and Tanimoto coefficient are separated by TABs and appended to
+the output of simesearch.
