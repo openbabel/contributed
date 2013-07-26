@@ -52,7 +52,7 @@ public class Server
 
     // Query parameters.
     private static final String SMILES_QUERY_PARAMETER = "smiles";
-    private static final String SMARTS_QUERY_PARAMETER = "smiles";
+    private static final String SMARTS_QUERY_PARAMETER = "smarts";
     private static final String CUT_OFF_QUERY_PARAMETER = "cutoff";
 
     // Babel search object.
@@ -94,9 +94,7 @@ public class Server
                 }
                 catch (Exception ex)
                 {
-                    text = "The request was not understood.\n" + ex.getMessage();
-                    resp.setCode(Status.BAD_REQUEST.code);
-                    resp.setDescription(Status.BAD_REQUEST.description);
+                    text = badRequest(resp, ex);
                 }
 
                 content = text;
@@ -112,9 +110,7 @@ public class Server
                 }
                 catch (Exception ex)
                 {
-                    text = "The request was not understood.\n" + ex.getMessage();
-                    resp.setCode(Status.BAD_REQUEST.code);
-                    resp.setDescription(Status.BAD_REQUEST.description);
+                    text = badRequest(resp, ex);
                 }
 
                 content = text;
@@ -122,7 +118,7 @@ public class Server
             else
             {
                 // Request for an invalid path.
-                content = "The page you were looking for does not exist.";
+                content = "The requested page requested does not exist.";
                 resp.setCode(Status.NOT_FOUND.code);
                 resp.setDescription(Status.NOT_FOUND.description);
             }
@@ -145,6 +141,21 @@ public class Server
         {
             LOG.warning("Failed to handle request: " + e.getMessage());
         }
+    }
+
+    /**
+     * Handle bad requests.
+     *
+     * @param resp response.
+     * @param ex   exception.
+     * @return text to add to response.
+     */
+    private String badRequest(Response resp,
+                              Exception ex)
+    {
+        resp.setCode(Status.BAD_REQUEST.code);
+        resp.setDescription(Status.BAD_REQUEST.description);
+        return "The request was not understood.\n" + ex.getMessage();
     }
 
     /**
@@ -211,7 +222,7 @@ public class Server
     {
         // Create a Babel search object.
         final BabelFastIndexSearch search = new BabelFastIndexSearch(getPropertyNotNull(BABEL_PATH_PROPERTY_NAME),
-                                                                       getPropertyNotNull(INDEX_FILE_PROPERTY_NAME));
+                                                                     getPropertyNotNull(INDEX_FILE_PROPERTY_NAME));
 
         // Get port number.
         final int port =

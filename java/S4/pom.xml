@@ -4,7 +4,7 @@
     <groupId>com.syngenta.ciu.s4</groupId>
     <artifactId>S4</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <name>Simple Structure Search Server (S4)</name>
     <description>A simple RESTful Web Service interface to OpenBabel's structure search tools</description>
     <inceptionYear>2013</inceptionYear>

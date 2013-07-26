@@ -40,6 +40,9 @@ public class BabelFastIndexSearch
     // Process interrupted.
     private static final String INTERRUPTED = "Interrupted";
 
+    // String builder initial capacity.
+    private static final int STRING_CAPACITY = 100;
+
     // Path to index file.
     private final String indexFilePath;
 
@@ -65,42 +68,6 @@ public class BabelFastIndexSearch
     }
 
     /**
-     * Gets the index file path for a given value.
-     *
-     * @param path the value to parse and check.
-     * @return the canonical form of the path to the index file.
-     * @throws IOException if the path is not to a file is not readable.
-     */
-    private static String getIndexFilePath(final String path) throws IOException
-    {
-        final File file = new File(path);
-        if (!file.isFile() || !file.canRead())
-        {
-            throw new IOException("Index file not readable file (" + path + ')');
-        }
-
-        return file.getCanonicalPath();
-    }
-
-    /**
-     * Gets the Babel executable path for a given value.
-     *
-     * @param path the value to parse and check.
-     * @return the canonical form of the path to the index file.
-     * @throws IOException if the path is not to an executable file.
-     */
-    private static String getBabelExecutablePath(final String path) throws IOException
-    {
-        final File file = new File(path);
-        if (!file.isFile() || !file.canExecute())
-        {
-            throw new IOException("Babel program not an executable file (" + path + ')');
-        }
-
-        return file.getCanonicalPath();
-    }
-
-    /**
      * Do a similarity search.
      *
      * @param smiles query structure expressed in SMILES format.
@@ -120,7 +87,7 @@ public class BabelFastIndexSearch
         final File resultsFile = File.createTempFile(HITS_FILE_PREFIX, TEMP_FILE_SUFFIX);
 
         // Storage for results.
-        final StringBuilder results = new StringBuilder(100);
+        final StringBuilder results = new StringBuilder(STRING_CAPACITY);
 
         // Search against the index file.
         similaritySearch(cutOff, queryFile, resultsFile);
@@ -156,7 +123,8 @@ public class BabelFastIndexSearch
                             id = id.replace('\t', ' ');
 
                             // Append record.
-                            results.append(id + '\t' + structure + '\t' + tanimoto + '\n');
+                            results.append(id).append('\t').append(structure).append('\t').append(tanimoto)
+                                    .append('\n');
                         }
                     }
                     else
@@ -201,11 +169,10 @@ public class BabelFastIndexSearch
         final File resultsFile = File.createTempFile(HITS_FILE_PREFIX, TEMP_FILE_SUFFIX);
 
         // Storage for results.
-        final StringBuilder results = new StringBuilder(100);
+        final StringBuilder results = new StringBuilder(STRING_CAPACITY);
 
         // Search against the index file.
-        substructureSearch(resultsFile,
-                           smarts);
+        substructureSearch(resultsFile, smarts);
         if (resultsFile.length() > 0L)
         {
             // Read the results file.
@@ -216,7 +183,7 @@ public class BabelFastIndexSearch
                 while ((line = reader.readLine()) != null)
                 {
                     // Append record.
-                    results.append(line);
+                    results.append(line).append("\n");
                 }
             }
             finally
@@ -233,6 +200,42 @@ public class BabelFastIndexSearch
     }
 
     /**
+     * Gets the index file path for a given value.
+     *
+     * @param path the value to parse and check.
+     * @return the canonical form of the path to the index file.
+     * @throws IOException if the path is not to a file is not readable.
+     */
+    private static String getIndexFilePath(final String path) throws IOException
+    {
+        final File file = new File(path);
+        if (!file.isFile() || !file.canRead())
+        {
+            throw new IOException("Index file not readable file (" + path + ')');
+        }
+
+        return file.getCanonicalPath();
+    }
+
+    /**
+     * Gets the Babel executable path for a given value.
+     *
+     * @param path the value to parse and check.
+     * @return the canonical form of the path to the index file.
+     * @throws IOException if the path is not to an executable file.
+     */
+    private static String getBabelExecutablePath(final String path) throws IOException
+    {
+        final File file = new File(path);
+        if (!file.isFile() || !file.canExecute())
+        {
+            throw new IOException("Babel program not an executable file (" + path + ')');
+        }
+
+        return file.getCanonicalPath();
+    }
+
+    /**
      * Write the SMILES query to a file.
      *
      * @param smiles the SMILES to query.
@@ -245,7 +248,7 @@ public class BabelFastIndexSearch
         final FileWriter writer = new FileWriter(queryFile);
         try
         {
-            writer.append(smiles + '\n');
+            writer.append(smiles).append('\n');
         }
         finally
         {
@@ -267,45 +270,12 @@ public class BabelFastIndexSearch
                                   final File queryFile,
                                   final File resultsFile) throws IOException
     {
-        // Create the process.
-        final Process process = new ProcessBuilder(executablePathName,
-                                                   indexFilePath,
-                                                   resultsFile.getCanonicalPath(),
-                                                   "-S" + queryFile.getCanonicalPath(),
-                                                   "-at" + cutOff).start();
-
-        // Log STDERR..
-        final StringBuilder err = new StringBuilder(100);
-        final BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-        try
-        {
-            String line;
-            while ((line = stdErr.readLine()) != null)
-            {
-                err.append(line);
-                LOG.info(line);
-            }
-        }
-        finally
-        {
-            stdErr.close();
-        }
-
-        // Wait for exit.
-        try
-        {
-            process.waitFor();
-        }
-        catch (InterruptedException e)
-        {
-            LOG.warning(INTERRUPTED);
-        }
-
-        // Check exit value.
-        if (process.exitValue() != 0)
-        {
-            throw new IllegalStateException("Babel search (similarity) failed.\nError messages:\n" + err);
-        }
+        // Create and execute the process.
+        executeProcess(new ProcessBuilder(executablePathName,
+                                          indexFilePath,
+                                          resultsFile.getCanonicalPath(),
+                                          "-S" + queryFile.getCanonicalPath(),
+                                          "-at" + cutOff).start());
     }
 
     /**
@@ -318,15 +288,24 @@ public class BabelFastIndexSearch
     private void substructureSearch(final File resultsFile,
                                     final String smarts) throws IOException
     {
-        // Create the process.
-        final Process process = new ProcessBuilder(executablePathName,
-                                                   indexFilePath,
-                                                   "-ifs",
-                                                   resultsFile.getCanonicalPath(),
-                                                   "-s" + smarts).start();
+        // Create and execute the process.
+        executeProcess(new ProcessBuilder(executablePathName,
+                                          indexFilePath,
+                                          "-ifs",
+                                          resultsFile.getCanonicalPath(),
+                                          "-s" + smarts).start());
+    }
 
+    /**
+     * Execute a process.
+     *
+     * @param process the process to execute.
+     * @throws IOException if there are i/o problems.
+     */
+    private void executeProcess(Process process) throws IOException
+    {
         // Log STDERR..
-        final StringBuilder err = new StringBuilder(100);
+        final StringBuilder err = new StringBuilder(STRING_CAPACITY);
         final BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
         try
         {
@@ -355,7 +334,7 @@ public class BabelFastIndexSearch
         // Check exit value.
         if (process.exitValue() != 0)
         {
-            throw new IllegalStateException("Babel search (sub-structure) failed.\nError messages:\n" + err);
+            throw new IllegalStateException("OpenBabel search failed.\nError messages:\n" + err);
         }
     }
 
@@ -401,7 +380,7 @@ public class BabelFastIndexSearch
         }
 
         // Log STDERR..
-        final StringBuilder err = new StringBuilder(100);
+        final StringBuilder err = new StringBuilder(STRING_CAPACITY);
         final BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
         try
         {
