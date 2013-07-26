@@ -182,8 +182,23 @@ public class BabelFastIndexSearch
                 String line;
                 while ((line = reader.readLine()) != null)
                 {
-                    // Append record.
-                    results.append(line).append("\n");
+                    final String[] strings = WHITESPACE_REGEX.split(line, 2);
+                    if (strings.length == 2)
+                    {
+                        // Get SMILES and ID.
+                        final String structure = strings[0].trim();
+                        String id = strings[1].trim();
+
+                        // Replace separator.
+                        id = id.replace('\t', ' ');
+
+                        // Append record.
+                        results.append(id).append('\t').append(structure).append('\t').append('\n');
+                    }
+                    else
+                    {
+                        LOG.warning("Ignored invalid line of hits file: " + line);
+                    }
                 }
             }
             finally
@@ -271,11 +286,11 @@ public class BabelFastIndexSearch
                                   final File resultsFile) throws IOException
     {
         // Create and execute the process.
-        executeProcess(new ProcessBuilder(executablePathName,
-                                          indexFilePath,
-                                          resultsFile.getCanonicalPath(),
-                                          "-S" + queryFile.getCanonicalPath(),
-                                          "-at" + cutOff).start());
+        logStdErrAndWait(new ProcessBuilder(executablePathName,
+                                            indexFilePath,
+                                            resultsFile.getCanonicalPath(),
+                                            "-S" + queryFile.getCanonicalPath(),
+                                            "-at" + cutOff).start());
     }
 
     /**
@@ -289,20 +304,20 @@ public class BabelFastIndexSearch
                                     final String smarts) throws IOException
     {
         // Create and execute the process.
-        executeProcess(new ProcessBuilder(executablePathName,
-                                          indexFilePath,
-                                          "-ifs",
-                                          resultsFile.getCanonicalPath(),
-                                          "-s" + smarts).start());
+        logStdErrAndWait(new ProcessBuilder(executablePathName,
+                                            indexFilePath,
+                                            "-ifs",
+                                            resultsFile.getCanonicalPath(),
+                                            "-s" + smarts).start());
     }
 
     /**
-     * Execute a process.
+     * Log std error and wait for exit.
      *
-     * @param process the process to execute.
+     * @param process the process.
      * @throws IOException if there are i/o problems.
      */
-    private void executeProcess(Process process) throws IOException
+    private void logStdErrAndWait(Process process) throws IOException
     {
         // Log STDERR..
         final StringBuilder err = new StringBuilder(STRING_CAPACITY);
@@ -379,38 +394,8 @@ public class BabelFastIndexSearch
             stdIn.close();
         }
 
-        // Log STDERR..
-        final StringBuilder err = new StringBuilder(STRING_CAPACITY);
-        final BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-        try
-        {
-            String line;
-            while ((line = stdErr.readLine()) != null)
-            {
-                LOG.info(line);
-                err.append(line);
-            }
-        }
-        finally
-        {
-            stdErr.close();
-        }
-
-        // Wait for exit.
-        try
-        {
-            process.waitFor();
-        }
-        catch (InterruptedException e)
-        {
-            LOG.warning(INTERRUPTED);
-        }
-
-        // Check exit value.
-        if (process.exitValue() != 0)
-        {
-            throw new IllegalStateException("Babel search (Tanimoto) failed.\nError messages:\n" + err);
-        }
+        // Log stderr and wait for exit.
+        logStdErrAndWait(process);
 
         return map;
     }

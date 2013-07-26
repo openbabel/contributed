@@ -1,16 +1,16 @@
-SIMPLE SIMILARITY SEARCH SERVER (S4)
-====================================
+SIMPLE STRUCTURE SEARCH SERVER (S4)
+===================================
 
-S4 provides a simple RESTful Web Service interface to OpenBabel's similarity search tools.
+S4 provides a simple RESTful Web Service interface to OpenBabel's similarity and sub-structure search tools.
 
 --- Build S4
 
 To build S4 use Maven:
 
 cd S4
-mvn2 package
+mvn package
 
-You will then find a build of the S4 JAR file in the Maven target directory, e.g. S4/target/S4-1.0.0-SNAPSHOT.jar
+You will then find a build of the S4 JAR file in the Maven target directory, e.g. S4/target/S4-1.0.1-SNAPSHOT.jar
 
 --- Run S4
 
@@ -44,19 +44,25 @@ A template script file for defining the above properties and launching S4 is pro
 
 --- Use S4
 
-You can search by requesting simsearch on the S4 server with parameters smiles and cutoff (the latter is optional;
-default is 0.8), e.g.
+You can perform a similarity search by requesting simsearch on the S4 server with parameters smiles and cutoff (the
+latter is optional; default is 0.8), e.g.
 
 http://server.name:8888/simsearch?smiles=O=C%28[C@H]%28CC1=CC=CC=C1%29NC%28=O%29[C@H]%28CC%28=O%29O%29N%29OCC&cutoff=0.9
 
-It is important to remember that SMILES values must be URL encoded. A simple way to to do this is to enter the
-following command into the address bar of your browser:
+You can perform a substructure search by requesting subsearch on the S4 server with parameter smarts e.g.
+
+http://server.name:8888/subsearch?smarts=C%3DCC
+
+It is important to remember that SMILES and SMARTS values must be URL encoded. A simple way to to do this is to enter
+the following command into the address bar of your browser:
 
 javascript:encodeURIComponent("O=C1C2=C(N=CN2C)N(C(=O)N1C)C")
 
 --- How S4 uses OpenBabel
 
-The simsearch service uses the BabelSimilaritySearch class to run the OpenBabel executable.
+The simsearch and subsearch services use the BabelFastIndexSearch class to run the OpenBabel executable.
+
+simsearch:
 
 1. The query SMILES is written to a temporary file smiles.query.file.
 2. A second temporary file, temporary.results.file, is created to hold intermediate results.
@@ -76,4 +82,16 @@ babel <smiles.query.file> <temporary.results.file> -ofpt
 
 6. The temporary.results.file is then parsed with the structure id used to lookup the Tanimoto coefficient using the
 map produced in step 5. Then the structure id, SMILES and Tanimoto coefficient are separated by TABs and appended to
-the output of simesearch.
+the output of simsearch.
+
+subsearch:
+
+1. A temporary file, temporary.results.file, is created to hold the results.
+2. The OpenBabel executable is run to perform a substructure search of the Fast Search index file, s4.index.file.name,
+using the specified smarts.query:
+
+babel <s4.index.file.name> -ifs <temporary.results.file> -s<smarts.query>
+
+This writes the search results (structure id and SMILES) to temporary.results.file.
+
+3. The content of temporary.results.file is then parsed and output as the response to subsearch.
