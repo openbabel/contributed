@@ -13,18 +13,18 @@ import java.net.InetSocketAddress;
 import java.util.logging.Logger;
 
 /**
- * Launches S4 (Simple Similarity Search Server).
+ * Launches S4 (Simple Structure Search Server).
  *
  * @author $Author$
  * @version $Revision$
- *
- * This file is part of the Open Babel project. For more information, see <http://openbabel.sourceforge.net/> This program is free software;
- * you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation
- * version 2 of the License. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
- * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * Code created was by or on behalf of Syngenta and is released under the open source license in use for the pre-existing code or project.
- * Syngenta does not assert ownership or copyright any over pre-existing work.
+ *          <p/>
+ *          This file is part of the Open Babel project. For more information, see <http://openbabel.sourceforge.net/> This program is free software;
+ *          you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation
+ *          version 2 of the License. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ *          implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *          <p/>
+ *          Code created was by or on behalf of Syngenta and is released under the open source license in use for the pre-existing code or project.
+ *          Syngenta does not assert ownership or copyright any over pre-existing work.
  */
 public class Server
         implements Container
@@ -43,25 +43,27 @@ public class Server
     // Default port number.
     private static final int DEFAULT_PORT_NUMBER = 8080;
 
-    // Similarity Search URI path.
-    private static final String SEARCH_PATH = "simsearch";
+    // Search URI paths.
+    private static final String SIMILARITY_SEARCH_PATH = "simsearch";
+    private static final String SUBSTRUCTURE_SEARCH_PATH = "subsearch";
 
     // Default similarity search cut-off.
     private static final double DEFAULT_SIMILARITY_CUT_OFF = 0.8;
 
     // Query parameters.
     private static final String SMILES_QUERY_PARAMETER = "smiles";
+    private static final String SMARTS_QUERY_PARAMETER = "smiles";
     private static final String CUT_OFF_QUERY_PARAMETER = "cutoff";
 
     // Babel search object.
-    private final BabelSimilaritySearch babel;
+    private final BabelFastIndexSearch babel;
 
     /**
      * Create the container.
      *
-     * @param search the similarity search object.
+     * @param search the structure search object.
      */
-    private Server(final BabelSimilaritySearch search)
+    private Server(final BabelFastIndexSearch search)
     {
         babel = search;
     }
@@ -81,14 +83,32 @@ public class Server
 
             final String content;
             final String path = req.getPath().getPath();
-            if (path != null && path.equalsIgnoreCase('/' + SEARCH_PATH))
+            if (path != null && path.equalsIgnoreCase('/' + SIMILARITY_SEARCH_PATH))
             {
                 // Similarity search.
                 String text;
                 try
                 {
                     final Query query = req.getQuery();
-                    text = babel.doSearch(getSmiles(query), getCutOff(query));
+                    text = babel.doSimilaritySearch(getSearchQuery(query, SMILES_QUERY_PARAMETER), getCutOff(query));
+                }
+                catch (Exception ex)
+                {
+                    text = "The request was not understood.\n" + ex.getMessage();
+                    resp.setCode(Status.BAD_REQUEST.code);
+                    resp.setDescription(Status.BAD_REQUEST.description);
+                }
+
+                content = text;
+            }
+            else if (path != null && path.equalsIgnoreCase('/' + SUBSTRUCTURE_SEARCH_PATH))
+            {
+                // Substructure search.
+                String text;
+                try
+                {
+                    final Query query = req.getQuery();
+                    text = babel.doSubstructureSearch(getSearchQuery(query, SMARTS_QUERY_PARAMETER));
                 }
                 catch (Exception ex)
                 {
@@ -146,20 +166,22 @@ public class Server
     }
 
     /**
-     * Gets the SMILES value from the request query.
+     * Gets the search query parameter value from the request query.
      *
-     * @param query the request query.
-     * @return the value of the SMILES parameter.
+     * @param query     the request query.
+     * @param parameter the search query.
+     * @return the value of the search query parameter.
      */
-    private static String getSmiles(final Query query)
+    private static String getSearchQuery(final Query query,
+                                         final String parameter)
     {
-        String smiles = query.get(SMILES_QUERY_PARAMETER);
-        if (smiles == null || smiles.trim().length() == 0)
+        String search = query.get(parameter);
+        if (search == null || search.trim().length() == 0)
         {
-            throw new IllegalArgumentException("SMILES not specified");
+            throw new IllegalArgumentException(parameter + " query parameter not specified");
         }
-        smiles = smiles.trim();
-        return smiles;
+        search = search.trim();
+        return search;
     }
 
     /**
@@ -188,7 +210,7 @@ public class Server
     public static void main(final String... list) throws IOException
     {
         // Create a Babel search object.
-        final BabelSimilaritySearch search = new BabelSimilaritySearch(getPropertyNotNull(BABEL_PATH_PROPERTY_NAME),
+        final BabelFastIndexSearch search = new BabelFastIndexSearch(getPropertyNotNull(BABEL_PATH_PROPERTY_NAME),
                                                                        getPropertyNotNull(INDEX_FILE_PROPERTY_NAME));
 
         // Get port number.

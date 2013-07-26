@@ -12,19 +12,19 @@ import java.util.regex.Pattern;
  *
  * @author $Author$
  * @version $Revision$
- *
- * This file is part of the Open Babel project. For more information, see <http://openbabel.sourceforge.net/> This program is free software;
- * you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation
- * version 2 of the License. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
- * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * Code created was by or on behalf of Syngenta and is released under the open source license in use for the pre-existing code or project.
- * Syngenta does not assert ownership or copyright any over pre-existing work.
+ *          <p/>
+ *          This file is part of the Open Babel project. For more information, see <http://openbabel.sourceforge.net/> This program is free software;
+ *          you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation
+ *          version 2 of the License. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ *          implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *          <p/>
+ *          Code created was by or on behalf of Syngenta and is released under the open source license in use for the pre-existing code or project.
+ *          Syngenta does not assert ownership or copyright any over pre-existing work.
  */
-public class BabelSimilaritySearch
+public class BabelFastIndexSearch
 {
     // Logger.
-    private static final Logger LOG = Logger.getLogger(BabelSimilaritySearch.class.getName());
+    private static final Logger LOG = Logger.getLogger(BabelFastIndexSearch.class.getName());
 
     // Temporary file affixes.
     private static final String QUERY_FILE_PREFIX = "s4_query";
@@ -53,8 +53,8 @@ public class BabelSimilaritySearch
      * @param indexPath path to the index file to search.
      * @throws IOException if there are i/o problems.
      */
-    public BabelSimilaritySearch(final String babelPath,
-                                 final String indexPath) throws IOException
+    public BabelFastIndexSearch(final String babelPath,
+                                final String indexPath) throws IOException
     {
         // Initialize.
         indexFilePath = getIndexFilePath(indexPath);
@@ -108,8 +108,8 @@ public class BabelSimilaritySearch
      * @return The search hits.
      * @throws IOException if there are i/o problems.
      */
-    public String doSearch(final String smiles,
-                           final double cutOff) throws IOException
+    public String doSimilaritySearch(final String smiles,
+                                     final double cutOff) throws IOException
     {
         LOG.fine("Similarity search of " + indexFilePath + " for " + smiles + " (cut-off=" + cutOff + ')');
 
@@ -123,7 +123,7 @@ public class BabelSimilaritySearch
         final StringBuilder results = new StringBuilder(100);
 
         // Search against the index file.
-        search(cutOff, queryFile, resultsFile);
+        similaritySearch(cutOff, queryFile, resultsFile);
         if (resultsFile.length() > 0L)
         {
             // Generate Tanimoto coefficients for each hit.
@@ -187,6 +187,52 @@ public class BabelSimilaritySearch
     }
 
     /**
+     * Do a substructure search.
+     *
+     * @param smarts query expressed in SMARTS format.
+     * @return The search hits.
+     * @throws IOException if there are i/o problems.
+     */
+    public String doSubstructureSearch(final String smarts) throws IOException
+    {
+        LOG.fine("Sub-structure search of " + indexFilePath + " for " + smarts);
+
+        // Create temporary file for results.
+        final File resultsFile = File.createTempFile(HITS_FILE_PREFIX, TEMP_FILE_SUFFIX);
+
+        // Storage for results.
+        final StringBuilder results = new StringBuilder(100);
+
+        // Search against the index file.
+        substructureSearch(resultsFile,
+                           smarts);
+        if (resultsFile.length() > 0L)
+        {
+            // Read the results file.
+            final BufferedReader reader = new BufferedReader(new FileReader(resultsFile));
+            try
+            {
+                String line;
+                while ((line = reader.readLine()) != null)
+                {
+                    // Append record.
+                    results.append(line);
+                }
+            }
+            finally
+            {
+                reader.close();
+            }
+        }
+
+        // Clean up.
+        LOG.fine("Cleaning up...");
+        resultsFile.delete();
+
+        return results.toString();
+    }
+
+    /**
      * Write the SMILES query to a file.
      *
      * @param smiles the SMILES to query.
@@ -217,9 +263,9 @@ public class BabelSimilaritySearch
      * @param resultsFile file into which hits are written.
      * @throws IOException if there are i/o problems.
      */
-    private void search(final double cutOff,
-                        final File queryFile,
-                        final File resultsFile) throws IOException
+    private void similaritySearch(final double cutOff,
+                                  final File queryFile,
+                                  final File resultsFile) throws IOException
     {
         // Create the process.
         final Process process = new ProcessBuilder(executablePathName,
@@ -259,6 +305,57 @@ public class BabelSimilaritySearch
         if (process.exitValue() != 0)
         {
             throw new IllegalStateException("Babel search (similarity) failed.\nError messages:\n" + err);
+        }
+    }
+
+    /**
+     * Execute the substructure search.
+     *
+     * @param resultsFile file into which hits are written.
+     * @param smarts      substructure query.
+     * @throws IOException if there are i/o problems.
+     */
+    private void substructureSearch(final File resultsFile,
+                                    final String smarts) throws IOException
+    {
+        // Create the process.
+        final Process process = new ProcessBuilder(executablePathName,
+                                                   indexFilePath,
+                                                   "-ifs",
+                                                   resultsFile.getCanonicalPath(),
+                                                   "-s" + smarts).start();
+
+        // Log STDERR..
+        final StringBuilder err = new StringBuilder(100);
+        final BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        try
+        {
+            String line;
+            while ((line = stdErr.readLine()) != null)
+            {
+                err.append(line);
+                LOG.info(line);
+            }
+        }
+        finally
+        {
+            stdErr.close();
+        }
+
+        // Wait for exit.
+        try
+        {
+            process.waitFor();
+        }
+        catch (InterruptedException e)
+        {
+            LOG.warning(INTERRUPTED);
+        }
+
+        // Check exit value.
+        if (process.exitValue() != 0)
+        {
+            throw new IllegalStateException("Babel search (sub-structure) failed.\nError messages:\n" + err);
         }
     }
 
