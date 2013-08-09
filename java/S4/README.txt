@@ -78,7 +78,7 @@ structure in smiles.query.file and each of the structures in temporary.results.f
 
 babel <smiles.query.file> <temporary.results.file> -ofpt
 
-5. The output of this command is parse to produce a mapping between structure id and Tanimoto coefficient.
+5. The output of this command is parsed to produce a mapping between structure id and Tanimoto coefficient.
 
 6. The temporary.results.file is then parsed with the structure id used to lookup the Tanimoto coefficient using the
 map produced in step 5. Then the structure id, SMILES and Tanimoto coefficient are separated by TABs and appended to
