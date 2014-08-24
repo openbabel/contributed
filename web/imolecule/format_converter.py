@@ -1,16 +1,19 @@
 """
 Methods to interconvert between json and other (cif, mol, smi, etc.) files
 """
+from collections import Counter
+from fractions import gcd
+from functools import reduce
 
 import pybel
 ob = pybel.ob
 
-import json_formatter as json
+import imolecule.json_formatter as json
 
 table = ob.OBElementTable()
 
 
-def convert(data, in_format, out_format, filename=None, pretty=False):
+def convert(data, in_format, out_format, name=None, pretty=False):
     """Converts between two inputted chemical formats.
 
     Args:
@@ -20,62 +23,78 @@ def convert(data, in_format, out_format, filename=None, pretty=False):
             recognized by Open Babel
         out_format: The format to convert to. Can be "json" or any format
             recognized by Open Babel
-        filename: (Optional) The name of the file containing `data`. This is
-            used primarily to encode data saved in the file naming scheme of
-            the old building-block format
+        name: (Optional) If `out_format` is "json", will save the specified
+            value in a "name" property
         pretty: (Optional) If True and `out_format` is "json", will pretty-
             print the output for human readability
     Returns:
         A string representing the inputted `data` in the specified `out_format`
     """
-
     # Decide on a json formatter depending on desired prettiness
     dumps = json.dumps if pretty else json.compress
 
-    # If it's a json string, load it
-    if in_format == "json" and isinstance(data, basestring):
-        data = json.loads(data)
-
-    # A little "hack" to format inputted json
-    if in_format == "json" and out_format == "json":
-        return json.dumps(data)
+    # Bring up with open babel dev: mmcif seems to be a better parser than cif
+    if in_format == "cif":
+        in_format = "mmcif"
 
     # These use the open babel library to interconvert, with additions for json
-    mol = (json_to_pybel(data) if in_format == "json" else
-           pybel.readstring(in_format.encode("ascii"),
-                            "".join(i for i in data if ord(i) < 128)
-                            .encode("ascii")))
+    if in_format == "json":
+        mol = json_to_pybel(json.loads(data) if is_string(data) else data)
+    elif in_format == "pybel":
+        mol = data
+    else:
+        mol = pybel.readstring(in_format, data)
 
     # Infer structure in cases where the input format has no specification
     if not mol.OBMol.HasNonZeroCoords():
         mol.make3D()
+
+    # Make P1 if that's a thing, recalculating bonds in process
+    if hasattr(mol, "unitcell"):
+        mol.unitcell.FillUnitCell(mol.OBMol)
+        mol.OBMol.ConnectTheDots()
+        mol.OBMol.PerceiveBondOrders()
+
     mol.OBMol.Center()
 
-    return (dumps(pybel_to_json(mol, name=filename)) if out_format == "json"
-            else mol.write(out_format.encode("ascii")))
+    if out_format == "pybel":
+        return mol
+    elif out_format == "object":
+        return pybel_to_json(mol, name)
+    elif out_format == "json":
+        return dumps(pybel_to_json(mol, name))
+    else:
+        return mol.write(out_format)
 
 
-def json_to_pybel(data, center=True):
+def json_to_pybel(data, infer_bonds=False):
     """Converts python data structure to pybel.Molecule.
 
     This will infer bond data if not specified.
 
     Args:
         data: The loaded json data of a molecule, as a Python object
-        center: (Optional) Centers the coordinates of the outputted molecule
+        infer_bonds (Optional): If no bonds specified in input, infer them
     Returns:
         An instance of `pybel.Molecule`
     """
+    if "building_blocks" in data:
+        data["atoms"] = [a for bb in data["building_blocks"]
+                         for a in bb["atoms"]]
     obmol = ob.OBMol()
     obmol.BeginModify()
     for atom in data["atoms"]:
         obatom = obmol.NewAtom()
         obatom.SetAtomicNum(table.GetAtomicNum(str(atom["element"])))
         obatom.SetVector(*atom["location"])
+        if "charge" in atom:
+            obatom.SetPartialCharge(atom["charge"])
+
     # If there is no bond data, try to infer them
     if "bonds" not in data or not data["bonds"]:
-        obmol.ConnectTheDots()
-        obmol.PerceiveBondOrders()
+        if infer_bonds:
+            obmol.ConnectTheDots()
+            obmol.PerceiveBondOrders()
     # Otherwise, use the bonds in the data set
     else:
         for bond in data["bonds"]:
@@ -83,9 +102,18 @@ def json_to_pybel(data, center=True):
                 continue
             obmol.AddBond(bond["atoms"][0] + 1, bond["atoms"][1] + 1,
                           bond["order"])
+
+    # Check for unit cell data
+    # Back-compatibility with an old naming scheme
+    if "periodic_connections" in data:
+        data["unitcell"] = data["periodic_connections"]
+        del data["periodic_connections"]
+    if "unitcell" in data:
+        uc = ob.OBUnitCell()
+        uc.SetData(*(ob.vector3(*v) for v in data["unitcell"]))
+        uc.SetSpaceGroup("P1")
+        obmol.CloneData(uc)
     obmol.EndModify()
-    if center:
-        obmol.Center()
     return pybel.Molecule(obmol)
 
 
@@ -94,28 +122,67 @@ def pybel_to_json(molecule, name=None):
 
     Args:
         molecule: An instance of `pybel.Molecule`
+        name: (Optional) If specified, will save a "name" property
     Returns:
-        A Python dictionary containing atom and bond data
+       A Python dictionary containing atom and bond data
     """
     # Save atom element type and 3D location.
     atoms = [{"element": table.GetSymbol(atom.atomicnum),
-              "location": atom.coords}
+              "location": list(atom.coords)}
              for atom in molecule.atoms]
+    # Recover partial charge data, if exists
+    for atom, pybel_atom in zip(atoms, molecule.atoms):
+        if pybel_atom.partialcharge != 0:
+            atom["charge"] = pybel_atom.partialcharge
+
     # Save number of bonds and indices of endpoint atoms
     bonds = [{"atoms": [b.GetBeginAtom().GetIndex(),
                         b.GetEndAtom().GetIndex()],
               "order": b.GetBondOrder()}
              for b in ob.OBMolBondIter(molecule.OBMol)]
-    output = {"atoms": atoms, "bonds": bonds}
+    output = {"atoms": atoms, "bonds": bonds, "units": {}}
 
     # If there's unit cell data, save it to the json output
     if hasattr(molecule, "unitcell"):
         uc = molecule.unitcell
-        output["periodic_connections"] = [[v.GetX(), v.GetY(), v.GetZ()]
-                                          for v in uc.GetCellVectors()]
+        output["unitcell"] = [[v.GetX(), v.GetY(), v.GetZ()]
+                              for v in uc.GetCellVectors()]
+        density = (sum(atom.atomicmass for atom in molecule.atoms) /
+                   (uc.GetCellVolume() * 0.6022))
+        output["density"] = density
+        output["units"]["density"] = "kg / L"
+
+    # Save the formula to json. Use Hill notation, just to have a standard.
+    element_count = Counter(table.GetSymbol(a.atomicnum) for a in molecule)
+    hill_count = []
+    for element in ["C", "H"]:
+        if element in element_count:
+            hill_count += [(element, element_count[element])]
+            del element_count[element]
+    hill_count += sorted(element_count.items())
+
+    # If it's a crystal, then reduce the Hill formula
+    div = (reduce(gcd, (c[1] for c in hill_count))
+           if hasattr(molecule, "unitcell") else 1)
+
+    output["formula"] = "".join(n if c / div == 1 else "%s%d" % (n, c / div)
+                                for n, c in hill_count)
+    output["molecular_weight"] = molecule.molwt / div
+    output["units"]["molecular_weight"] = "g / mol"
+
+    # If the input has been given a name, add that
     if name:
         output["name"] = name
+
     return output
+
+
+def is_string(obj):
+    """Wraps Python2.x and 3.x ways to test if string."""
+    try:
+        return isinstance(obj, basestring)
+    except NameError:
+        return isinstance(obj, str)
 
 
 if __name__ == "__main__":
