@@ -1,4 +1,4 @@
-/*global THREE, $, jQuery, console, window, requestAnimationFrame, document, io, alert, Blob, saveAs*/
+/*global THREE, $, jQuery, console, window, requestAnimationFrame, document, WebSocket, alert, Blob, saveAs*/
 "use strict";
 
 var imolecule = {
@@ -10,7 +10,6 @@ var imolecule = {
 
         this.shader = options.hasOwnProperty("shader") ? options.shader : THREE.ShaderToon.toon2;
         this.drawingType = options.hasOwnProperty("drawingType") ? options.drawingType : "ball and stick";
-        this.boundaryType = options.hasOwnProperty("boundaryType") ? options.boundaryType : "unit cell";
         this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         this.renderer.setSize($s.width(), $s.height());
         $s.append(this.renderer.domElement);
@@ -18,9 +17,6 @@ var imolecule = {
         this.perspective = new THREE.PerspectiveCamera(50, $s.width() / $s.height());
         this.orthographic = new THREE.OrthographicCamera(-$s.width() / 32,
                 $s.width() / 32, $s.height() / 32, -$s.height() / 32, -100, 1000);
-        this.perspective.position.z = options.hasOwnProperty("z") ? options.z : 15;
-        this.orthographic.position = this.perspective.position;
-        this.orthographic.rotation = this.perspective.rotation;
         this.setCameraType(options.hasOwnProperty("cameraType") ? options.cameraType : "perspective");
 
         this.sphereGeometry = new THREE.SphereGeometry(1, 16, 12);
@@ -31,8 +27,8 @@ var imolecule = {
             .makeRotationFromEuler(new THREE.Euler(Math.PI / 2, Math.PI, 0)));
 
         this.light = new THREE.HemisphereLight(0xffffff, 1.0);
-        this.light.position = this.camera.position;
-        this.light.rotation = this.camera.rotation;
+        this.light.position.set(this.camera.position);
+        this.light.rotation.set(this.camera.rotation);
 
         this.atoms = [];
         this.bonds = [];
@@ -45,7 +41,7 @@ var imolecule = {
                 fragmentShader: self.shader.fragmentShader
             });
             material.uniforms.uDirLightPos.value.set(1, 1, 1)
-                             .multiplyScalar(self.camera.position.z);
+                             .multiplyScalar(15);
             value.color = new THREE.Color(value.color);
             material.uniforms.uDirLightColor.value = value.color;
             material.uniforms.uBaseColor.value = value.color;
@@ -75,7 +71,7 @@ var imolecule = {
     // Draws a molecule. Duh.
     draw: function (molecule) {
         var mesh, self, a, scale, j, k, dy, cent, data, v, vectors, points,
-            trans, geometry, material;
+            trans, geometry, material, maxHeight, maxZ, cameraZ;
         self = this;
         cent = new THREE.Vector3();
         this.current = molecule;
@@ -86,6 +82,8 @@ var imolecule = {
         if (!molecule.hasOwnProperty("bonds")) { molecule.bonds = []; }
 
         // Draws atoms and saves references
+        maxHeight = 0;
+        maxZ = 0;
         $.each(molecule.atoms, function (i, atom) {
             data = self.data[atom.element] || self.data.unknown;
             mesh = new THREE.Mesh(self.sphereGeometry, data.material);
@@ -96,7 +94,14 @@ var imolecule = {
             }
             mesh.element = atom.element;
             self.atoms.push(mesh);
+
+            maxHeight = Math.max(maxHeight, Math.abs(atom.location[0]), Math.abs(atom.location[1]));
+            maxZ = Math.max(maxZ, atom.location[2]);
         });
+
+        // Sets camera position to view whole molecule in bounds with some buffer
+        cameraZ = (maxHeight / Math.tan(Math.PI * self.camera.fov / 360) + maxZ) / 0.8;
+        self.camera.translateZ(cameraZ);
 
         // Bonds require some basic vector math
         $.each(molecule.bonds, function (i, bond) {
@@ -131,14 +136,20 @@ var imolecule = {
             }
         });
 
-        // If we're dealing with a crystal structure, draw the unit cell
+        // Back-compatibility with a stupid naming scheme
         if (molecule.hasOwnProperty("periodic_connections")) {
+            molecule.unitcell = molecule.periodic_connections;
+            delete molecule.periodic_connections;
+        }
+
+        // If we're dealing with a crystal structure, draw the unit cell
+        if (molecule.hasOwnProperty("unitcell")) {
             // Some basic conversions to handle math via THREE.Vector3
             v = new THREE.Vector3(0, 0, 0);
             vectors = [
-                v.clone().fromArray(molecule.periodic_connections[0]),
-                v.clone().fromArray(molecule.periodic_connections[1]),
-                v.clone().fromArray(molecule.periodic_connections[2])
+                v.clone().fromArray(molecule.unitcell[0]),
+                v.clone().fromArray(molecule.unitcell[1]),
+                v.clone().fromArray(molecule.unitcell[2])
             ];
             // The eight corners of the unit cell are linear combinations of above
             points = [
@@ -264,41 +275,40 @@ var imolecule = {
 
     // Connects to Python via a socketio-zeromq bridge. Ignore everything below
     // if you're not using the client-server functionality
-    connect: function (http_port) {
-        this.socket = new io.Socket(window.location.hostname,
-                                    {port: http_port, rememberTransport: false});
-        this.socket.connect();
+    connect: function (port) {
+        var self = this;
+        this.socket = new WebSocket("ws://" + window.location.hostname + ":" + port + "/websocket");
         this.queue = {};
 
-        this.socket.on("connect", function () {
+        this.socket.onopen = function () {
             console.log("Connected!");
-        });
+        };
 
-        var self = this;
-        this.socket.on("message", function (data) {
-            var router, name;
-            router = self.queue[data.id];
-            delete self.queue[data.id];
-            self.result = data.result;
-            try { data.result = $.parseJSON(data.result); } catch (err) {}
+        this.socket.onmessage = function (messageEvent) {
+            var router, jsonRpc, name;
 
-            if (data.error) {
-                alert(data.result);
-                return;
-            }
+            jsonRpc = $.parseJSON(messageEvent.data);
+            router = self.queue[jsonRpc.id];
+            delete self.queue[jsonRpc.id];
+            self.result = jsonRpc.result;
 
-            if (router === "draw") {
+            if (jsonRpc.error) {
+                alert(jsonRpc.result);
+
+            } else if (router === "draw") {
                 self.clear();
-                self.draw(data.result);
+                self.draw(jsonRpc.result);
+
             } else if (router === "save") {
-                name = (data.result.hasOwnProperty("name") && data.result.name !== "") ?
-                        data.result.name : self.filename;
+                name = (jsonRpc.result.hasOwnProperty("name") && jsonRpc.result.name !== "") ?
+                        jsonRpc.result.name : self.filename;
                 saveAs(new Blob([self.result], {type: "text/plain"}),
                         name + "." + self.outFormat);
+
             } else {
                 alert("Unsupported function: " + router);
             }
-        });
+        };
     },
 
     // Standardizes chemical drawing formats and draws
@@ -311,20 +321,20 @@ var imolecule = {
         }
 
         var uuid = this.uuid();
-        this.socket.send({method: "convert", id: uuid,
+        this.socket.send(JSON.stringify({method: "convert", id: uuid,
                           params: {data: data, in_format: inFormat,
-                                   out_format: "json", pretty: false}
-                         });
+                                   out_format: "object", pretty: false}
+                         }));
         this.queue[uuid] = "draw";
     },
 
     // Converts and saves output
     convertAndSave: function (data, outFormat) {
         var uuid = this.uuid();
-        this.socket.send({method: "convert", id: uuid,
+        this.socket.send(JSON.stringify({method: "convert", id: uuid,
                           params: {data: data, in_format: "json",
                                    out_format: outFormat, pretty: true}
-                         });
+                         }));
         this.outFormat = outFormat;
         this.queue[uuid] = "save";
     },
